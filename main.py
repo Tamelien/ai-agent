@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-import functions.available_functions as function
+import functions.call_function as function
 
 class FLAG(Enum):
     VERBOSE = "--verbose"
@@ -68,9 +68,19 @@ def main():
         print(f"Prompt tokens: {prompt_tokens}")
         print(f"Response tokens: {response_tokens}")
 
+    function_responses = []
     if response.function_calls:
         for function_call_part in response.function_calls:
-            print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+            function_call_result = function.call_function(function_call_part, args.verbose)
+
+            if (not hasattr(function_call_result, "parts")
+                or not function_call_result.parts
+                or not hasattr(function_call_result.parts[0], "function_response")
+                or not hasattr(function_call_result.parts[0].function_response, "response")):
+                raise RuntimeError
+            if args.verbose:
+                    print(f"-> {function_call_result.parts[0].function_response.response}")
+            function_responses.append(function_call_result.parts[0].function_response.response)
     else:
         print(response.text)
 
